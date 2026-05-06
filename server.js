@@ -1,8 +1,11 @@
-const express = require('express')
-const pool = require('./db')
-const app = express()
+import express from 'express';
+import cors from 'cors';
+import pool from './db.js'; // ⚠️ precisa da extensão .js
 
-app.use(express.json())
+const app = express();
+
+app.use(express.json());
+app.use(cors());
 
 app.get('/', (req, res) => {
     res.send('Funcionando')

@@ -30,3 +30,7 @@ INSERT INTO livros (titulo, autor, ano_publicacao, disponivel) VALUES
 
 ALTER TABLE livros 
 ALTER COLUMN ano_publicacao SET NOT NULL;
+
+ALTER TABLE livros ADD COLUMN img TEXT 	default 'https://www.cometanet.com.br/lv-e-assim-que-acaba-capa-dura-ed-colecionador' NOT NULL;
+
+UPDATE livros set img = 'https://images.tcdn.com.br/img/img_prod/1272692/lv_e_assim_que_acaba_capa_dura_ed_colecionador_1819_1_e9b28ec32791cc5e9287d142b8065393.jpg';
