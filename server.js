@@ -52,7 +52,6 @@ app.get('/livros/:id', async (req, res) => {
     }
 })
 
-// Incluir um usuário
 app.post('/livros', async (req, res) => {
     const { titulo, autor, ano_publicacao } = req.body
 
@@ -72,6 +71,92 @@ app.post('/livros', async (req, res) => {
         res.status(201).json(result.rows[0])
     } catch (err) {
         console.error(err)
+
+        res.status(500).send('Erro interno do servidor')
+    }
+})
+
+app.post('/clientes', async (req, res) => {
+
+    const { nome, email } = req.body
+
+    if (!nome?.trim() || !email?.trim()) {
+        return res.status(400).send('nome e email são obrigatórios')
+    }
+
+    try {
+        const result = await pool.query(
+            `INSERT INTO clientes 
+            (nome, email) 
+            VALUES ($1, $2)
+            RETURNING id, nome, email`,
+            [nome, email]
+        )
+
+        res.status(201).json(result.rows[0])
+    } catch (err) {
+        if (err.code = "23505") {
+            res.status(409).send('Email já cadastrado.')
+        }
+
+        res.status(500).send('Erro interno do servidor')
+    }
+
+
+})
+
+app.get('/clientes', async (req, res) => {
+    const { id } = req.query
+
+    try {
+        let query = 'SELECT * FROM clientes'
+        let values = []
+
+        if (id) {
+            query += ' WHERE id = $1'
+            values.push(id)
+        }
+
+        const result = await pool.query(query, values)
+
+        res.json(result.rows)
+    } catch (err) {
+        console.error(err)
+
+        res.status(500).send('Erro interno')
+    }
+})
+
+
+app.put('/clientes/:id', async (req, res) => {
+    const { id } = req.params
+    const { nome, email } = req.body
+
+    if (!id) {
+        return res.status(400).send('ID é obrigatório')
+    }
+
+    try {
+        const result = await pool.query(
+            `UPDATE clientes
+             SET nome = $1,
+                 email = $2
+             WHERE id = $3
+             RETURNING *`,
+            [nome, email, id]
+        )
+
+        if (result.rows.length === 0) {
+            return res.status(404).send('Cliente não encontrado')
+        }
+
+        res.json(result.rows[0])
+
+    } catch (err) {
+
+        if (err.code = "23505") {
+            res.status(409).send('Email já cadastrado.')
+        }
 
         res.status(500).send('Erro interno do servidor')
     }
