@@ -34,3 +34,32 @@ ALTER COLUMN ano_publicacao SET NOT NULL;
 ALTER TABLE livros ADD COLUMN img TEXT 	default 'https://www.cometanet.com.br/lv-e-assim-que-acaba-capa-dura-ed-colecionador' NOT NULL;
 
 UPDATE livros set img = 'https://images.tcdn.com.br/img/img_prod/1272692/lv_e_assim_que_acaba_capa_dura_ed_colecionador_1819_1_e9b28ec32791cc5e9287d142b8065393.jpg';
+
+
+
+CREATE TABLE clientes (
+  id SERIAL PRIMARY KEY,
+  nome VARCHAR(255) NOT NULL,
+  email VARCHAR(255) UNIQUE NOT NULL
+);
+
+CREATE TABLE pedidos (
+  id SERIAL PRIMARY KEY,
+  produto VARCHAR(255) NOT NULL,
+  valor NUMERIC(10,2) NOT NULL,
+  status VARCHAR(50) DEFAULT 'pendente',
+  cliente_id INTEGER REFERENCES clientes(id)
+);
+
+
+INSERT INTO clientes (nome, email) VALUES
+('João Silva', 'joao.silva@email.com'),
+('Maria Oliveira', 'maria.oliveira@email.com'),
+('Carlos Souza', 'carlos.souza@email.com'),
+('Ana Pereira', 'ana.pereira@email.com'),
+('Fernanda Lima', 'fernanda.lima@email.com'),
+('Ricardo Alves', 'ricardo.alves@email.com'),
+('Patrícia Gomes', 'patricia.gomes@email.com'),
+('Lucas Martins', 'lucas.martins@email.com'),
+('Juliana Rocha', 'juliana.rocha@email.com'),
+('Bruno Costa', 'bruno.costa@email.com');
