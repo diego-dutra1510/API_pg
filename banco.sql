@@ -51,6 +51,20 @@ CREATE TABLE pedidos (
   cliente_id INTEGER REFERENCES clientes(id)
 );
 
+SELECT conname
+FROM pg_constraint
+WHERE conrelid = 'pedidos'::regclass;
+
+ALTER TABLE pedidos
+DROP CONSTRAINT pedidos_cliente_id_fkey;
+
+ALTER TABLE pedidos
+ADD CONSTRAINT fk_pedidos_cliente
+FOREIGN KEY (cliente_id)
+REFERENCES clientes(id)
+ON DELETE CASCADE;
+
+
 
 INSERT INTO clientes (nome, email) VALUES
 ('João Silva', 'joao.silva@email.com'),
