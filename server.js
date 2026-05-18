@@ -16,9 +16,9 @@ app.get('/', (req, res) => {
 
 app.post('/clientes', async (req, res) => {
 
-    const { nome, email } = req.body
+    const { Nome, Email } = req.body
 
-    if (!nome?.trim() || !email?.trim()) {
+    if (!Nome?.trim() || !Email?.trim()) {
         return res.status(400).send('nome e email são obrigatórios')
     }
 
@@ -28,7 +28,7 @@ app.post('/clientes', async (req, res) => {
             (nome, email) 
             VALUES ($1, $2)
             RETURNING id, nome, email`,
-            [nome, email]
+            [Nome, Email]
         )
 
 
