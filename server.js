@@ -35,7 +35,7 @@ app.post('/clientes', async (req, res) => {
         res.status(201).json(result.rows[0])
     } catch (err) {
 
-
+        console.log(err)
         res.status(500).send('Erro interno do servidor')
     }
 

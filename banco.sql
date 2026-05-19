@@ -1,8 +1,7 @@
 CREATE ROLE diego WITH LOGIN PASSWORD 'diego261510';
 
 
-GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO diego;
-GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public TO diego;
+
 
 ALTER DEFAULT PRIVILEGES IN SCHEMA public 
 GRANT ALL ON TABLES TO diego;
@@ -77,3 +76,7 @@ INSERT INTO clientes (nome, email) VALUES
 ('Lucas Martins', 'lucas.martins@email.com'),
 ('Juliana Rocha', 'juliana.rocha@email.com'),
 ('Bruno Costa', 'bruno.costa@email.com');
+
+
+GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO diego;
+GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public TO diego;
