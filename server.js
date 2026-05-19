@@ -175,11 +175,11 @@ app.get('/clientes/:id/pedidos', async (req, res) => {
 })
 
 
-app.put('/clientes/:id', async (req, res) => {
-    const { id } = req.params
-    const { nome, email } = req.body
+app.put('/clientes/:Id', async (req, res) => {
+    const { Id } = req.params
+    const { Nome, Email } = req.body
 
-    if (!id) {
+    if (!Id) {
         return res.status(400).send('ID é obrigatório')
     }
 
@@ -190,7 +190,7 @@ app.put('/clientes/:id', async (req, res) => {
             email = $2
             WHERE id = $3
             RETURNING *`,
-            [nome, email, id]
+            [Nome, Email, Id]
         )
 
         if (result.rows.length === 0) {
