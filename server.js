@@ -42,56 +42,6 @@ app.post('/clientes', async (req, res) => {
 
 })
 
-app.post('/pedidos', async (req, res) => {
-
-    const { produto, valor, status, cliente_id } = req.body
-
-    const statusPermitidos = ['pendente', 'preparando', 'entregue']
-
-    if (
-        !produto?.trim() ||
-        typeof valor !== 'number' ||
-        !status?.trim() ||
-        typeof cliente_id !== 'number'
-    ) {
-        return res.status(400).send('produto, valor, status, cliente_id são obrigatórios')
-    }
-
-    if (!statusPermitidos.includes(status)) {
-        return res.status(400).send("status inválido. Use: 'pendente', 'preparando' ou 'entregue'")
-    }
-
-    const cliente_existe = await pool.query(
-        `SELECT * FROM clientes WHERE id = $1`,
-        [cliente_id]
-    )
-
-    if (cliente_existe.rows.length === 0) {
-        return res.status(404).send('Cliente não encontrado')
-    }
-
-    try {
-
-
-
-        const result = await pool.query(
-            `INSERT INTO pedidos 
-            (produto, valor, status, cliente_id) 
-            VALUES ($1, $2, $3, $4)
-            RETURNING *`,
-            [produto, valor, status, cliente_id]
-        )
-
-        res.status(201).json(result.rows[0])
-    } catch (err) {
-        console.log(err)
-
-        res.status(500).send('Erro interno do servidor')
-    }
-
-
-})
-
 app.get('/clientes', async (req, res) => {
     const { id } = req.query
 
@@ -102,36 +52,6 @@ app.get('/clientes', async (req, res) => {
         if (id) {
             query += ' WHERE id = $1'
             values.push(id)
-        }
-
-        const result = await pool.query(query, values)
-
-        res.json(result.rows)
-    } catch (err) {
-        console.error(err)
-
-        res.status(500).send('Erro interno')
-    }
-})
-
-app.get('/pedidos', async (req, res) => {
-
-    const { status } = req.query
-
-    try {
-        let query = `
-            SELECT 
-                pedidos.*,
-                clientes.nome AS cliente_nome
-            FROM pedidos
-            JOIN clientes 
-                ON pedidos.cliente_id = clientes.id
-        `
-        let values = []
-
-        if (status) {
-            query += ' WHERE pedidos.status = $1'
-            values.push(status)
         }
 
         const result = await pool.query(query, values)
@@ -228,123 +148,123 @@ app.delete('/clientes/:id', async (req, res) => {
     }
 })
 
-app.delete('/livros/:id', async (req, res) => {
+app.post('/pedidos', async (req, res) => {
+
+    const { cliente_id, produtos } = req.body
+
+    if (!cliente_id || !produtos || produtos.length === 0) {
+        return res.status(400).send('Dados inválidos')
+    }
+
+    const client = await pool.connect()
+
     try {
-        const result = await pool.query(
-            `DELETE FROM livros WHERE id = $1`,
-            [req.params.id]
+
+        await client.query('BEGIN')
+
+        const pedidoResult = await client.query(
+            `INSERT INTO pedidos (cliente_id)
+             VALUES ($1)
+             RETURNING *`,
+            [cliente_id]
         )
 
-        if (result.rowCount === 0) {
-            return res.status(404).send('Livro não encontrado')
+        const pedido = pedidoResult.rows[0]
+
+        for (const item of produtos) {
+
+            const produtoDB = await client.query(
+                `SELECT * FROM produtos WHERE id = $1`,
+                [item.produto_id]
+            )
+
+            if (produtoDB.rows.length === 0) {
+                throw new Error(`Produto ${item.produto_id} não encontrado`)
+            }
+
+            const produto = produtoDB.rows[0]
+
+            await client.query(
+                `INSERT INTO pedido_produtos
+                (pedido_id, produto_id, quantidade, valor_unitario)
+                VALUES ($1, $2, $3, $4)`,
+                [
+                    pedido.id,
+                    item.produto_id,
+                    item.quantidade,
+                    produto.valor_unitario
+                ]
+            )
+
+            await client.query(
+                `UPDATE produtos
+                SET quantidade = quantidade - $1
+                WHERE id = $2`,
+                [item.quantidade, item.produto_id]
+            )
         }
 
-        res.send('Livro excluído com sucesso')
+        await client.query('COMMIT')
+
+        res.status(201).json({
+            message: 'Pedido criado',
+            pedido
+        })
+
     } catch (err) {
+
+        await client.query('ROLLBACK')
+
         console.error(err)
-        res.status(500).send('Erro interno do servidor')
+
+        res.status(500).send(err.message)
+
+    } finally {
+
+        client.release()
     }
 })
 
 
-app.put('/livros/:id', async (req, res) => {
-    const { id } = req.params
-    const { titulo, autor, ano_publicacao, disponivel } = req.body
-
-    if (!id) {
-        return res.status(400).send('ID é obrigatório')
-    }
+app.get('/pedidos', async (req, res) => {
 
     try {
-        const result = await pool.query(
-            `UPDATE livros
-            SET titulo = $1,
-            autor = $2,
-            ano_publicacao = $3,
-            disponivel = $4
-            WHERE id = $5
-            RETURNING *`,
-            [titulo, autor, ano_publicacao, disponivel, id]
-        )
 
-        if (result.rows.length === 0) {
-            return res.status(404).send('Livro não encontrado')
-        }
+        const result = await pool.query(`
+            SELECT
+                pedidos.id AS pedido_id,
+                pedidos.status,
+                pedidos.created_at,
 
-        res.json(result.rows[0])
+                clientes.nome AS cliente_nome,
 
-    } catch (err) {
-        console.error(err)
-        res.status(500).send('Erro interno do servidor')
-    }
-})
+                produtos.nome AS produto_nome,
+                pedido_produtos.quantidade,
+                pedido_produtos.valor_unitario
 
-app.post('/livros', async (req, res) => {
-    const { titulo, autor, ano_publicacao } = req.body
+            FROM pedidos
 
-    if (!titulo?.trim() || !autor?.trim()) {
-        return res.status(400).send('titulo e autor são obrigatórios')
-    }
+            JOIN clientes
+                ON clientes.id = pedidos.cliente_id
 
-    try {
-        const result = await pool.query(
-            `INSERT INTO livros 
-            (titulo, autor, ano_publicacao) 
-            VALUES ($1, $2, $3)
-            RETURNING id, titulo, autor, ano_publicacao`,
-            [titulo, autor, ano_publicacao || null]
-        )
+            JOIN pedido_produtos
+                ON pedido_produtos.pedido_id = pedidos.id
 
-        res.status(201).json(result.rows[0])
-    } catch (err) {
-        console.error(err)
+            JOIN produtos
+                ON produtos.id = pedido_produtos.produto_id
 
-        res.status(500).send('Erro interno do servidor')
-    }
-})
-
-app.get('/livros/:id', async (req, res) => {
-    try {
-        const result = await pool.query(
-            `SELECT id, titulo, autor, ano_publicacao, disponivel 
-            FROM livros 
-            WHERE id = $1`,
-            [req.params.id]
-        )
-
-        if (result.rows.length === 0) {
-            return res.status(404).send('Livro não encontrado')
-        }
-
-        res.json(result.rows[0])
-    } catch (err) {
-        console.error(err)
-        res.status(500).send('Erro interno do servidor')
-    }
-})
-
-app.get('/livros', async (req, res) => {
-    const { autor } = req.query
-
-    try {
-        let query = 'SELECT * FROM livros'
-        let values = []
-
-        if (autor && autor.trim() !== '') {
-            query += ' WHERE autor ILIKE $1'
-            values.push(`%${autor}%`)
-        }
-
-        const result = await pool.query(query, values)
+            ORDER BY pedidos.id
+        `)
 
         res.json(result.rows)
+
     } catch (err) {
+
         console.error(err)
+
         res.status(500).send('Erro interno')
     }
 })
-
-
 
 
 app.listen(3000, () => {

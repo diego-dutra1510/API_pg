@@ -44,24 +44,25 @@ CREATE TABLE clientes (
 
 CREATE TABLE pedidos (
   id SERIAL PRIMARY KEY,
-  produto VARCHAR(255) NOT NULL,
-  valor NUMERIC(10,2) NOT NULL,
   status VARCHAR(50) DEFAULT 'pendente',
-  cliente_id INTEGER REFERENCES clientes(id)
+  cliente_id INTEGER REFERENCES clientes(id),
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
-SELECT conname
-FROM pg_constraint
-WHERE conrelid = 'pedidos'::regclass;
+CREATE TABLE produtos (
+  id SERIAL PRIMARY KEY,
+  nome VARCHAR(160) NOT NULL,
+  valor_unitario NUMERIC(10, 2) NOT NULL,
+  quantidade INT NOT NULL
+);
 
-ALTER TABLE pedidos
-DROP CONSTRAINT pedidos_cliente_id_fkey;
-
-ALTER TABLE pedidos
-ADD CONSTRAINT fk_pedidos_cliente
-FOREIGN KEY (cliente_id)
-REFERENCES clientes(id)
-ON DELETE CASCADE;
+CREATE TABLE pedido_produtos (
+  id SERIAL PRIMARY KEY,
+  pedido_id INTEGER REFERENCES pedidos(id) ON DELETE CASCADE,
+  produto_id INTEGER REFERENCES produtos(id),
+  quantidade INT NOT NULL,
+  valor_unitario NUMERIC(10,2) NOT NULL
+);
 
 
 
