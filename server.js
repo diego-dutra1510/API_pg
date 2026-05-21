@@ -266,6 +266,238 @@ app.get('/pedidos', async (req, res) => {
     }
 })
 
+app.post('/produtos', async (req, res) => {
+
+    const { nome, valor_unitario, quantidade } = req.body
+
+    if (
+        !nome?.trim() ||
+        valor_unitario == null ||
+        quantidade == null
+    ) {
+        return res.status(400).send('Dados inválidos')
+    }
+
+    try {
+
+        const result = await pool.query(
+            `INSERT INTO produtos
+            (nome, valor_unitario, quantidade)
+            VALUES ($1, $2, $3)
+            RETURNING *`,
+            [nome, valor_unitario, quantidade]
+        )
+
+        res.status(201).json(result.rows[0])
+
+    } catch (err) {
+
+        console.error(err)
+        res.status(500).send('Erro interno')
+    }
+})
+
+app.get('/produtos', async (req, res) => {
+
+    const { id } = req.query
+
+    try {
+
+        let query = 'SELECT * FROM produtos'
+        let values = []
+
+        if (id) {
+            query += ' WHERE id = $1'
+            values.push(id)
+        }
+
+        query += ' ORDER BY id'
+
+        const result = await pool.query(
+            query,
+            values
+        )
+
+        res.json(result.rows)
+
+    } catch (err) {
+
+        console.error(err)
+        res.status(500).send('Erro interno')
+    }
+})
+
+
+app.put('/produtos/:id', async (req, res) => {
+
+    const { id } = req.params
+    const {
+        nome,
+        valor_unitario,
+        quantidade
+    } = req.body
+
+    try {
+
+        const result = await pool.query(
+            `UPDATE produtos
+            SET nome = $1,
+                valor_unitario = $2,
+                quantidade = $3
+            WHERE id = $4
+            RETURNING *`,
+            [
+                nome,
+                valor_unitario,
+                quantidade,
+                id
+            ]
+        )
+
+        if (result.rows.length === 0) {
+            return res
+                .status(404)
+                .send('Produto não encontrado')
+        }
+
+        res.json(result.rows[0])
+
+    } catch (err) {
+
+        console.error(err)
+        res.status(500).send('Erro interno')
+    }
+})
+
+
+app.delete('/produtos/:id', async (req, res) => {
+
+    try {
+
+        const result = await pool.query(
+            `DELETE FROM produtos
+            WHERE id = $1`,
+            [req.params.id]
+        )
+
+        if (result.rowCount === 0) {
+            return res
+                .status(404)
+                .send('Produto não encontrado')
+        }
+
+        res.send('Produto excluído')
+
+    } catch (err) {
+
+        console.error(err)
+        res.status(500).send('Erro interno')
+    }
+})
+
+app.put('/pedidos/:id/status', async (req, res) => {
+
+    const { id } = req.params;
+
+    const { status } = req.body;
+
+    if (!status?.trim()) {
+        return res
+            .status(400)
+            .send('Status é obrigatório');
+    }
+
+    try {
+
+        const result = await pool.query(
+            `
+            UPDATE pedidos
+            SET status = $1
+            WHERE id = $2
+            RETURNING *
+            `,
+            [status, id]
+        );
+
+        if (result.rows.length === 0) {
+            return res
+                .status(404)
+                .send('Pedido não encontrado');
+        }
+
+        res.json(result.rows[0]);
+
+    } catch (err) {
+
+        console.error(err);
+
+        res.status(500)
+            .send('Erro interno');
+    }
+});
+
+app.get('/pedidos', async (req, res) => {
+
+    const { status } = req.query;
+
+    try {
+
+        let query = `
+            SELECT
+                pedidos.id AS pedido_id,
+                pedidos.status,
+                pedidos.created_at,
+
+                clientes.nome AS cliente_nome,
+
+                produtos.nome AS produto_nome,
+                pedido_produtos.quantidade,
+                pedido_produtos.valor_unitario
+
+            FROM pedidos
+
+            JOIN clientes
+                ON clientes.id = pedidos.cliente_id
+
+            JOIN pedido_produtos
+                ON pedido_produtos.pedido_id = pedidos.id
+
+            JOIN produtos
+                ON produtos.id =
+                pedido_produtos.produto_id
+        `;
+
+        const values = [];
+
+        if (status) {
+
+            query += `
+                WHERE pedidos.status = $1
+            `;
+
+            values.push(status);
+        }
+
+        query += `
+            ORDER BY pedidos.id
+        `;
+
+        const result = await pool.query(
+            query,
+            values
+        );
+
+        res.json(result.rows);
+
+    } catch (err) {
+
+        console.error(err);
+
+        res.status(500)
+            .send('Erro interno');
+    }
+});
+
 
 app.listen(3000, () => {
     console.log('Livros abertos na porta 3000')

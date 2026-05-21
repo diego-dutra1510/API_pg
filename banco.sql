@@ -78,6 +78,18 @@ INSERT INTO clientes (nome, email) VALUES
 ('Juliana Rocha', 'juliana.rocha@email.com'),
 ('Bruno Costa', 'bruno.costa@email.com');
 
+INSERT INTO produtos (nome, valor_unitario, quantidade) VALUES
+('Café Expresso', 7.50, 50),
+('Cappuccino', 12.90, 30),
+('Latte', 13.50, 25),
+('Mocha', 15.00, 20),
+('Café Gelado', 14.90, 15),
+('Pão de Queijo', 6.50, 40),
+('Croissant', 9.90, 18),
+('Bolo de Chocolate', 8.50, 12),
+('Cookie', 5.00, 35),
+('Sanduíche Natural', 16.90, 10);
+
 
 GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO diego;
 GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public TO diego;
